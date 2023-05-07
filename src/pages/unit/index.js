@@ -3,7 +3,6 @@ import {
   Button,
   Col,
   Row,
-  Segmented,
   Select,
   Space,
   Statistic,
@@ -11,16 +10,16 @@ import {
   Typography,
 } from 'antd';
 import { useRouter } from 'next/router';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 export default function Unit({
   branchDatas,
   sortedUnitItemData,
   unitData,
   unitTotalVolumeData,
-  operatingCnt,
-  operatedCnt,
-  willOperateCnt,
+  operatingCntByBranch,
+  operatedCntByBranch,
+  willOperateCntByBranch,
 }) {
   const { Text } = Typography;
   const router = useRouter();
@@ -32,7 +31,9 @@ export default function Unit({
   const [selectedBranchId, setSelectedBranchId] = useState(
     router.query.garageId ? router.query.garageId : 1,
   );
-  const [selectedUnitId, setSelectedUnitId] = useState(1);
+  const [selectedUnitId, setSelectedUnitId] = useState(
+    router.query.garageId ? unitData[router.query.garageId][0].id : 1,
+  );
   const selectChangeHandler = (id) => {
     setSelectedBranchId(id);
     setSelectedUnitId(unitData[id][0].id);
@@ -182,28 +183,28 @@ export default function Unit({
             <Statistic
               title={<Text>전체 유닛 갯수</Text>}
               value={
-                operatingCnt[selectedBranchId] +
-                willOperateCnt[selectedBranchId] +
-                operatedCnt[selectedBranchId]
+                operatingCntByBranch[selectedBranchId] +
+                willOperateCntByBranch[selectedBranchId] +
+                operatedCntByBranch[selectedBranchId]
               }
             />
           </Col>
           <Col span={6}>
             <Statistic
               title={<Badge status="processing" text="이용중" />}
-              value={operatingCnt[selectedBranchId]}
+              value={operatingCntByBranch[selectedBranchId]}
             />
           </Col>
           <Col span={6}>
             <Statistic
               title={<Badge status="success" text="이용예정" />}
-              value={willOperateCnt[selectedBranchId]}
+              value={willOperateCntByBranch[selectedBranchId]}
             />
           </Col>
           <Col span={6}>
             <Statistic
               title={<Badge status="warning" text="이용종료" />}
-              value={operatedCnt[selectedBranchId]}
+              value={operatedCntByBranch[selectedBranchId]}
             />
           </Col>
         </Row>
@@ -256,6 +257,11 @@ export default function Unit({
           columns={unitItemColumns}
           dataSource={selectedUnitItemDatas}
           scroll={{ y: 240 }}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '50', '100'],
+          }}
           tableLayout="auto"
         />
       </div>
@@ -291,10 +297,9 @@ export async function getServerSideProps() {
   const unitItemDatas = require('../api/unit-item.json');
 
   const sortedUnitItemData = {};
-  const unitIsOperatingCntData = {};
-  const unitOperatedCntData = {};
-  const unitWillOperateCntData = {};
-  const unitOperatingCntData = {};
+  const operatedCntByUnit = {};
+  const willOperateCntByUnit = {};
+  const operatingCntByUnit = {};
 
   for (let data of unitItemDatas) {
     // 빈 배열들 추가
@@ -315,23 +320,23 @@ export async function getServerSideProps() {
               (new Date(data.endDate) - new Date(data.startDate)),
           ) + '%';
 
-        unitOperatingCntData[data.unitId] = unitOperatingCntData[data.unitId]
-          ? unitOperatingCntData[data.unitId] + 1
+        operatingCntByUnit[data.unitId] = operatingCntByUnit[data.unitId]
+          ? operatingCntByUnit[data.unitId] + 1
           : 1;
       } else {
         // 완료
         statusCode = 2;
         elapsedRate = '100%';
-        unitOperatedCntData[data.unitId] = unitOperatedCntData[data.unitId]
-          ? unitOperatedCntData[data.unitId] + 1
+        operatedCntByUnit[data.unitId] = operatedCntByUnit[data.unitId]
+          ? operatedCntByUnit[data.unitId] + 1
           : 1;
       }
     } else {
       // 예정
       statusCode = 0;
       elapsedRate = '0%';
-      unitWillOperateCntData[data.unitId] = unitWillOperateCntData[data.unitId]
-        ? unitWillOperateCntData[data.unitId] + 1
+      willOperateCntByUnit[data.unitId] = willOperateCntByUnit[data.unitId]
+        ? willOperateCntByUnit[data.unitId] + 1
         : 1;
     }
 
@@ -356,10 +361,38 @@ export async function getServerSideProps() {
   const unitData = {};
   const unitTotalVolumeData = {};
   let allUnitVolume = 0;
+  let operatingCntByBranch = {};
+  let operatedCntByBranch = {};
+  let willOperateCntByBranch = {};
 
   for (let data of unitDatas) {
-    // 새로운 branchId
+    //브랜치별 status 수 계산
+    if (!operatingCntByBranch.hasOwnProperty(data.branchId)) {
+      operatingCntByBranch[data.branchId] = 0;
+    }
+    if (operatingCntByUnit[data.id] !== undefined) {
+      operatingCntByBranch[data.branchId] =
+        operatingCntByBranch[data.branchId] + operatingCntByUnit[data.id];
+    }
+
+    if (!operatedCntByBranch.hasOwnProperty(data.branchId)) {
+      operatedCntByBranch[data.branchId] = 0;
+    }
+    if (operatedCntByUnit[data.id] !== undefined) {
+      operatedCntByBranch[data.branchId] =
+        operatedCntByBranch[data.branchId] + operatedCntByUnit[data.id];
+    }
+
+    if (!willOperateCntByBranch.hasOwnProperty(data.branchId)) {
+      willOperateCntByBranch[data.branchId] = 0;
+    }
+    if (willOperateCntByUnit[data.id] !== undefined) {
+      willOperateCntByBranch[data.branchId] =
+        willOperateCntByBranch[data.branchId] + willOperateCntByUnit[data.id];
+    }
+
     if (!unitData[data.branchId]) {
+      // 새로운 branchId
       unitData[data.branchId] = [];
       unitTotalVolumeData[Math.max(data.branchId - 1, 1)] = allUnitVolume;
       allUnitVolume = 0;
@@ -374,6 +407,7 @@ export async function getServerSideProps() {
       depth: data.depth,
       height: data.height,
       priceValue: data.priceValue,
+      operatingCnt: operatingCntByUnit[data.id],
     });
   }
 
@@ -386,9 +420,12 @@ export async function getServerSideProps() {
       sortedUnitItemData: JSON.parse(JSON.stringify(sortedUnitItemData)),
       unitData: JSON.parse(JSON.stringify(unitData)),
       unitTotalVolumeData,
-      operatingCnt: unitOperatingCntData,
-      operatedCnt: unitOperatedCntData,
-      willOperateCnt: unitWillOperateCntData,
+      operatingCnt: operatingCntByUnit,
+      operatedCnt: operatedCntByUnit,
+      willOperateCnt: willOperateCntByUnit,
+      operatingCntByBranch,
+      operatedCntByBranch,
+      willOperateCntByBranch,
     },
   };
 }

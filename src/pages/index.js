@@ -3,9 +3,7 @@ import {
   Badge,
   Button,
   Col,
-  List,
   Row,
-  Segmented,
   Space,
   Statistic,
   Table,
@@ -27,37 +25,37 @@ function GarageStaticsStatus(props) {
         <Col span={4}>
           <Statistic
             title={<Text>전체</Text>}
-            value={props.notOperatingCnt.current + props.operatingCnt.current}
+            value={props.notOperatingCnt + props.operatingCnt}
           />
         </Col>
         <Col span={4}>
           <Statistic
             title={<Badge status="processing" text="검수중" />}
-            value={props.examingCnt.current}
+            value={props.examingCnt}
           />
         </Col>
         <Col span={4}>
           <Statistic
             title={<Badge status="success" text="검수완료" />}
-            value={props.examedCnt.current}
+            value={props.examedCnt}
           />
         </Col>
         <Col span={4}>
           <Statistic
             title={<Badge status="warning" text="검수반려" />}
-            value={props.examRejectedCnt.current}
+            value={props.examRejectedCnt}
           />
         </Col>
         <Col span={4}>
           <Statistic
             title={<Badge status="error" text="미운영" />}
-            value={props.notOperatingCnt.current}
+            value={props.notOperatingCnt}
           />
         </Col>
         <Col span={4}>
           <Statistic
             title={<Badge status="success" text="운영중" />}
-            value={props.operatingCnt.current}
+            value={props.operatingCnt}
           />
         </Col>
       </Row>
@@ -67,6 +65,7 @@ function GarageStaticsStatus(props) {
 
 function GarageList({ tableData }) {
   const router = useRouter();
+  console.log(tableData);
   const columns = [
     {
       title: '순번',
@@ -82,11 +81,35 @@ function GarageList({ tableData }) {
       title: '운영상태',
       dataIndex: 'operationStatus',
       align: 'center',
+      render: (text, row) => {
+        return (
+          <>
+            {row.isAvailable === 0 ? (
+              <Badge status="error" text="미운영" />
+            ) : (
+              <Badge status="success" text="운영중" />
+            )}
+          </>
+        );
+      },
     },
     {
       title: '검수상태',
       dataIndex: 'inspectionStatus',
       align: 'center',
+      render: (text, row) => {
+        return (
+          <>
+            {row.isExamined === 0 ? (
+              <Badge status="processing" text="검수중" />
+            ) : row.isExamined === 1 ? (
+              <Badge status="success" text="검수완료" />
+            ) : (
+              <Badge status="warning" text="검수반려" />
+            )}
+          </>
+        );
+      },
     },
     {
       title: '유닛',
@@ -107,6 +130,9 @@ function GarageList({ tableData }) {
       title: '관리',
       dataIndex: 'management',
       align: 'center',
+      render: () => {
+        return <ManageButtons />;
+      },
     },
   ];
 
@@ -123,6 +149,31 @@ function GarageList({ tableData }) {
     );
   };
 
+  function ManageButtons() {
+    const manageButtonClickHandler = (e) => {
+      e.stopPropagation();
+      if (e.target.textContent === '더보기') {
+        setManageButtonList((prev) => [
+          ...prev.slice(0, prev.length - 1),
+          <Button onClick={manageButtonClickHandler}>더1</Button>,
+          <Button onClick={manageButtonClickHandler}>더2</Button>,
+        ]);
+      } else {
+        console.log(e.target.textContent);
+      }
+    };
+    const [manageButtonList, setManageButtonList] = useState([
+      <Button onClick={manageButtonClickHandler}>창고</Button>,
+      <Button onClick={manageButtonClickHandler}>유닛</Button>,
+      <Button onClick={manageButtonClickHandler}>예약</Button>,
+      <Button key="More" onClick={manageButtonClickHandler}>
+        더보기
+      </Button>,
+    ]);
+
+    return <Space>{manageButtonList}</Space>;
+  }
+
   return (
     <div style={{ marginTop: '20px' }}>
       <Space
@@ -137,6 +188,11 @@ function GarageList({ tableData }) {
         dataSource={tableData}
         scroll={{ y: 240 }}
         tableLayout="auto"
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '50', '100'],
+        }}
         onRow={(record) => {
           return {
             onClick: () => garageListClickHandler(record.id),
@@ -147,87 +203,35 @@ function GarageList({ tableData }) {
   );
 }
 
-export default function Home() {
-  const examingCnt = useRef(0);
-  const examedCnt = useRef(0);
-  const examRejectedCnt = useRef(0);
-  const notOperatingCnt = useRef(0);
-  const operatingCnt = useRef(0);
-
-  const datas = require('./api/branch.json');
-
-  const tableData = [];
-  for (let data of datas) {
-    switch (data.isExamined) {
-      case 0:
-        examingCnt.current++;
-        break;
-      case 1:
-        examedCnt.current++;
-        break;
-      case 2:
-        examRejectedCnt.current++;
-        break;
-      default:
-        break;
+export default function Home({
+  tableData,
+  examingCnt,
+  examedCnt,
+  examRejectedCnt,
+  notOperatingCnt,
+  operatingCnt,
+}) {
+  const buttonClickHandler = (e) => {
+    e.stopPropagation();
+    if (e.target.textContent === '더보기') {
+      setManageButtonList((prev) => [
+        ...prev.slice(0, prev.length - 1),
+        <Button onClick={buttonClickHandler}>추가</Button>,
+        <Button onClick={buttonClickHandler}>버튼</Button>,
+      ]);
+    } else {
+      console.log(e.target.textContent);
     }
-    switch (data.isAvailable) {
-      case 0:
-        notOperatingCnt.current++;
-        break;
-      case 1:
-        operatingCnt.current++;
-        break;
-      default:
-        break;
-    }
+  };
 
-    const buttonClickHandler = (e) => {
-      e.stopPropagation();
-      if (e.target.textContent === '더보기') {
-        setManageButtonList((prev) => [
-          ...prev.slice(0, prev.length - 1),
-          <Button onClick={buttonClickHandler}>추가</Button>,
-          <Button onClick={buttonClickHandler}>버튼</Button>,
-        ]);
-      } else {
-        console.log(e.target.textContent);
-      }
-    };
-
-    const [manageButtonList, setManageButtonList] = useState([
-      <Button onClick={buttonClickHandler}>창고</Button>,
-      <Button onClick={buttonClickHandler}>유닛</Button>,
-      <Button onClick={buttonClickHandler}>예약</Button>,
-      <Button key="More" onClick={buttonClickHandler}>
-        더보기
-      </Button>,
-    ]);
-
-    tableData.push({
-      id: data.id,
-      branchName: data.branchName,
-      operationStatus:
-        data.isExamined === 0 ? (
-          <Badge status="success" text="운영중" />
-        ) : (
-          <Badge status="error" text="미운영" />
-        ),
-
-      inspectionStatus:
-        data.isExamined === 0 ? (
-          <Badge status="processing" text="검수중" />
-        ) : data.isExamined === 1 ? (
-          <Badge status="success" text="검수완료" />
-        ) : (
-          <Badge status="warning" text="검수반려" />
-        ),
-      unit: data.numberOfUnits + '개',
-      registrationDate: data.createdAt.substring(0, 10),
-      modificationDate: data.updatedAt.substring(0, 10),
-      management: <Space>{manageButtonList}</Space>,
-    });
-  }
+  const [manageButtonList, setManageButtonList] = useState([
+    <Button onClick={buttonClickHandler}>창고</Button>,
+    <Button onClick={buttonClickHandler}>유닛</Button>,
+    <Button onClick={buttonClickHandler}>예약</Button>,
+    <Button key="More" onClick={buttonClickHandler}>
+      더보기
+    </Button>,
+  ]);
 
   return (
     <div style={{ margin: '30px' }}>
@@ -241,4 +245,59 @@ export default function Home() {
       <GarageList tableData={tableData} />
     </div>
   );
+}
+
+export async function getServerSideProps() {
+  const branchDatas = require('./api/branch.json');
+  const tableData = [];
+
+  let [examingCnt, examedCnt, examRejectedCnt] = [0, 0, 0];
+  let [notOperatingCnt, operatingCnt] = [0, 0];
+
+  for (let data of branchDatas) {
+    switch (data.isExamined) {
+      case 0:
+        examingCnt++;
+        break;
+      case 1:
+        examedCnt++;
+        break;
+      case 2:
+        examRejectedCnt++;
+        break;
+      default:
+        break;
+    }
+    switch (data.isAvailable) {
+      case 0:
+        notOperatingCnt++;
+        break;
+      case 1:
+        operatingCnt++;
+        break;
+      default:
+        break;
+    }
+
+    tableData.push({
+      id: data.id,
+      branchName: data.branchName,
+      isAvailable: data.isAvailable,
+      isExamined: data.isExamined,
+      unit: data.numberOfUnits + '개',
+      registrationDate: data.createdAt.substring(0, 10),
+      modificationDate: data.updatedAt.substring(0, 10),
+    });
+  }
+
+  return {
+    props: {
+      tableData: JSON.parse(JSON.stringify(tableData)),
+      examingCnt,
+      examedCnt,
+      examRejectedCnt,
+      notOperatingCnt,
+      operatingCnt,
+    },
+  };
 }
