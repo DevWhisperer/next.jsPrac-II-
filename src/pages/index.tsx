@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Badge,
   Button,
@@ -11,7 +11,25 @@ import {
 } from 'antd';
 import { useRouter } from 'next/router';
 
-function GarageStaticsStatus(props) {
+interface StatusProps {
+  examingCnt: number;
+  examedCnt: number;
+  examRejectedCnt: number;
+  notOperatingCnt: number;
+  operatingCnt: number;
+}
+
+interface tableDataType {
+  id: number;
+  branchName: string;
+  isAvailable: number;
+  isExamined: number;
+  unit: string;
+  registrationDate: string;
+  modificationDate: string;
+}
+
+function GarageStaticsStatus(props: StatusProps) {
   const { Text } = Typography;
 
   return (
@@ -62,11 +80,10 @@ function GarageStaticsStatus(props) {
     </div>
   );
 }
-
-function GarageList({ tableData }) {
+type GarageListProps = { tableData: readonly any[] };
+const GarageList: React.FC<GarageListProps> = ({ tableData }) => {
   const router = useRouter();
-  console.log(tableData);
-  const columns = [
+  const columns: Array<object> = [
     {
       title: '순번',
       dataIndex: 'id',
@@ -81,7 +98,7 @@ function GarageList({ tableData }) {
       title: '운영상태',
       dataIndex: 'operationStatus',
       align: 'center',
-      render: (text, row) => {
+      render: (text: never, row: any) => {
         return (
           <>
             {row.isAvailable === 0 ? (
@@ -97,7 +114,7 @@ function GarageList({ tableData }) {
       title: '검수상태',
       dataIndex: 'inspectionStatus',
       align: 'center',
-      render: (text, row) => {
+      render: (text: never, row: any) => {
         return (
           <>
             {row.isExamined === 0 ? (
@@ -136,10 +153,11 @@ function GarageList({ tableData }) {
     },
   ];
 
-  const addStorageHanlder = (e) => {
-    console.log(e.target.textContent);
+  const addStorageHanlder = (e: React.MouseEvent): void => {
+    const eventTarget = e.target as HTMLElement;
+    console.log(eventTarget.textContent);
   };
-  const garageListClickHandler = (id) => {
+  const garageListClickHandler = (id: number): void => {
     router.push(
       {
         pathname: '/unit',
@@ -150,7 +168,7 @@ function GarageList({ tableData }) {
   };
 
   function ManageButtons() {
-    const manageButtonClickHandler = (e) => {
+    const manageButtonClickHandler = (e: any): void => {
       e.stopPropagation();
       if (e.target.textContent === '더보기') {
         setManageButtonList((prev) => [
@@ -201,6 +219,15 @@ function GarageList({ tableData }) {
       />
     </div>
   );
+};
+
+interface HomeProps {
+  tableData: any[];
+  examingCnt: number;
+  examedCnt: number;
+  examRejectedCnt: number;
+  notOperatingCnt: number;
+  operatingCnt: number;
 }
 
 export default function Home({
@@ -210,17 +237,18 @@ export default function Home({
   examRejectedCnt,
   notOperatingCnt,
   operatingCnt,
-}) {
-  const buttonClickHandler = (e) => {
+}: HomeProps) {
+  const buttonClickHandler = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    if (e.target.textContent === '더보기') {
+    const eventTarget = e.target as HTMLElement;
+    if (eventTarget.textContent === '더보기') {
       setManageButtonList((prev) => [
         ...prev.slice(0, prev.length - 1),
         <Button onClick={buttonClickHandler}>추가</Button>,
         <Button onClick={buttonClickHandler}>버튼</Button>,
       ]);
     } else {
-      console.log(e.target.textContent);
+      console.log(eventTarget.textContent);
     }
   };
 
@@ -249,7 +277,7 @@ export default function Home({
 
 export async function getServerSideProps() {
   const branchDatas = require('./api/branch.json');
-  const tableData = [];
+  const tableData: any[] = [];
 
   let [examingCnt, examedCnt, examRejectedCnt] = [0, 0, 0];
   let [notOperatingCnt, operatingCnt] = [0, 0];

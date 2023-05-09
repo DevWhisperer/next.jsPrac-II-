@@ -10,7 +10,19 @@ import {
   Typography,
 } from 'antd';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import React, { useState } from 'react';
+
+interface UnitProps {
+  branchDatas: [];
+  sortedUnitItemData: { [id: number]: any };
+  unitData: {
+    [id: number]: any;
+  };
+  unitTotalVolumeData: { [id: number]: any };
+  operatingCntByBranch: { [id: number]: any };
+  operatedCntByBranch: { [id: number]: any };
+  willOperateCntByBranch: { [id: number]: any };
+}
 
 export default function Unit({
   branchDatas,
@@ -20,28 +32,34 @@ export default function Unit({
   operatingCntByBranch,
   operatedCntByBranch,
   willOperateCntByBranch,
-}) {
+}: UnitProps): React.ReactElement {
   const { Text } = Typography;
   const router = useRouter();
-  let selectDataList = [];
+
+  let selectDataList: any[] = [];
 
   branchDatas.map((item) => {
-    selectDataList.push({ value: item.id, label: item.branchName });
+    selectDataList.push({ value: item['id'], label: item['branchName'] });
   });
   const [selectedBranchId, setSelectedBranchId] = useState(
-    router.query.garageId ? router.query.garageId : 1,
+    router.query.garageId ? Number(router.query.garageId) : 1,
   );
-  const [selectedUnitId, setSelectedUnitId] = useState(
-    router.query.garageId ? unitData[router.query.garageId][0].id : 1,
-  );
-  const selectChangeHandler = (id) => {
+
+  const [selectedUnitId, setSelectedUnitId] = useState(() => {
+    router.query.garageId
+      ? unitData[router.query.garageId as keyof {}][0].id
+      : 1;
+    return 1;
+  });
+  const selectChangeHandler = (id: number) => {
     setSelectedBranchId(id);
     setSelectedUnitId(unitData[id][0].id);
   };
+
   const selectedUnitDataList = unitData[selectedBranchId];
   let selectedUnitItemDatas = sortedUnitItemData[selectedUnitId];
 
-  const unitColumns = [
+  const unitColumns: any = [
     {
       title: '유닛',
       dataIndex: 'unitName',
@@ -61,7 +79,7 @@ export default function Unit({
       title: '점유율',
       dataIndex: 'share',
       align: 'center',
-      render: (text, record, idx) =>
+      render: (text: never, record: any) =>
         Math.round(
           (record.width *
             record.depth *
@@ -101,7 +119,7 @@ export default function Unit({
     },
   ];
 
-  const unitItemColumns = [
+  const unitItemColumns: any[] = [
     {
       title: '유닛아이템',
       dataIndex: 'unitItemName',
@@ -116,7 +134,7 @@ export default function Unit({
       title: '상태',
       dataIndex: 'statusCode',
       align: 'center',
-      render: (text, record) => {
+      render: (text: never, record: any) => {
         return (
           <>
             {record.statusCode === 0 ? (
@@ -217,8 +235,8 @@ export default function Unit({
           style={{ width: '100%', padding: '10px' }}
         >
           <Button
-            onClick={(e) => {
-              console.log(e.target.textContent);
+            onClick={(e: React.MouseEvent): void => {
+              console.log((e.target as HTMLLIElement).textContent);
             }}
           >
             + 유닛 추가
@@ -246,8 +264,8 @@ export default function Unit({
           style={{ width: '100%', padding: '10px' }}
         >
           <Button
-            onClick={(e) => {
-              console.log(e.target.textContent);
+            onClick={(e: React.MouseEvent) => {
+              console.log((e.target as HTMLLIElement).textContent);
             }}
           >
             + 유닛아이템 추가
@@ -270,15 +288,15 @@ export default function Unit({
 }
 
 function ManageButtons() {
-  const manageButtonClickHandler = (e) => {
-    if (e.target.textContent === '더보기') {
+  const manageButtonClickHandler = (e: React.MouseEvent): void => {
+    if ((e.target as HTMLLIElement).textContent === '더보기') {
       setManageButtonList((prev) => [
         ...prev.slice(0, prev.length - 1),
         <Button onClick={manageButtonClickHandler}>수정2</Button>,
         <Button onClick={manageButtonClickHandler}>수정3</Button>,
       ]);
     } else {
-      console.log(e.target.textContent);
+      console.log((e.target as HTMLLIElement).textContent);
     }
   };
   const [manageButtonList, setManageButtonList] = useState([
@@ -296,10 +314,10 @@ export async function getServerSideProps() {
   const unitDatas = require('../api/unit.json');
   const unitItemDatas = require('../api/unit-item.json');
 
-  const sortedUnitItemData = {};
-  const operatedCntByUnit = {};
-  const willOperateCntByUnit = {};
-  const operatingCntByUnit = {};
+  const sortedUnitItemData: any = {};
+  const operatedCntByUnit: { [id: number]: any } = {};
+  const willOperateCntByUnit: { [id: number]: any } = {};
+  const operatingCntByUnit: { [id: number]: any } = {};
 
   for (let data of unitItemDatas) {
     // 빈 배열들 추가
@@ -310,14 +328,16 @@ export async function getServerSideProps() {
     // 상태, 이용기간 경과율 정리
     let statusCode = 0;
     let elapsedRate = '';
-    if (new Date() - new Date(data.startDate) > 0) {
-      if (new Date() - new Date(data.endDate) < 0) {
+    if (new Date().valueOf() - new Date(data.startDate).valueOf() > 0) {
+      if (new Date().valueOf() - new Date(data.endDate).valueOf() < 0) {
         // 진행중
         statusCode = 1;
         elapsedRate =
           Math.round(
-            ((new Date() - new Date(data.startDate)) * 100) /
-              (new Date(data.endDate) - new Date(data.startDate)),
+            ((new Date().valueOf() - new Date(data.startDate).valueOf()) *
+              100) /
+              (new Date(data.endDate).valueOf() -
+                new Date(data.startDate).valueOf()),
           ) + '%';
 
         operatingCntByUnit[data.unitId] = operatingCntByUnit[data.unitId]
@@ -358,12 +378,12 @@ export async function getServerSideProps() {
   }
 
   // unit 데이터
-  const unitData = {};
-  const unitTotalVolumeData = {};
+  const unitData: { [id: number]: any } = {};
+  const unitTotalVolumeData: { [id: number]: any } = {};
   let allUnitVolume = 0;
-  let operatingCntByBranch = {};
-  let operatedCntByBranch = {};
-  let willOperateCntByBranch = {};
+  let operatingCntByBranch: { [id: number]: any } = {};
+  let operatedCntByBranch: { [id: number]: any } = {};
+  let willOperateCntByBranch: { [id: number]: any } = {};
 
   for (let data of unitDatas) {
     //브랜치별 status 수 계산
